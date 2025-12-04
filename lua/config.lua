@@ -133,16 +133,16 @@ require('lazy').setup({
     },
   },
 
-  { -- Add indentation guides even on blank lines
+  {
     'lukas-reineke/indent-blankline.nvim',
-    -- Enable `lukas-reineke/indent-blankline.nvim`
-    -- See `:help indent_blankline.txt`
+    main = "ibl",          -- 👈 REQUIRED for v3
     opts = {
-      char = '┊',
-      show_trailing_blankline_indent = false,
+      indent = { char = "┊" },
+      whitespace = {
+        remove_blankline_trail = true,
+      },
     },
   },
-
   -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
 
@@ -429,21 +429,32 @@ capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
 require('mason').setup()
 
 -- Ensure the servers above are installed
-local mason_lspconfig = require 'mason-lspconfig'
-
+local mason_lspconfig = require('mason-lspconfig')
 mason_lspconfig.setup {
-  ensure_installed = vim.tbl_keys(servers),
+    ensure_installed = vim.tbl_keys(servers),
 }
 
-mason_lspconfig.setup_handlers {
-  function(server_name)
-    require('lspconfig')[server_name].setup {
-      capabilities = capabilities,
-      on_attach = on_attach,
-      settings = servers[server_name],
-    }
-  end,
-}
+local function setup_server(server, settings)
+  local config = {
+    on_attach = on_attach,
+    capabilities = capabilities,
+    settings = settings,
+  }
+
+  local base = vim.lsp.config[server]
+
+  if not base then
+    -- Create a new base config for this server
+    base = vim.lsp.config.make(server)
+  end
+
+  -- Always use vim.lsp.start (Neovim 0.11+)
+  vim.lsp.start(vim.tbl_deep_extend("force", base, config))
+end
+
+for server, server_settings in pairs(servers) do
+  setup_server(server, server_settings)
+end
 
 -- nvim-cmp setup
 local cmp = require 'cmp'
