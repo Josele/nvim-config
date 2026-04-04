@@ -35,6 +35,9 @@ I hope you enjoy your Neovim journey,
 
 P.S. You can delete this when you're done too. It's your config now :)
 --]]
+-- If using lazy.nvim or similar, this is often handled, 
+-- but manually you can tell the LSP to recognize 'vim'
+---@diagnostic disable: undefined-global
 
 -- Set <space> as the leader key
 -- See `:help mapleader`
@@ -415,7 +418,16 @@ local mason_lspconfig = require('mason-lspconfig')
 mason_lspconfig.setup {
     ensure_installed = vim.tbl_keys(servers),
 }
-
+-- 3. Use 'mason-registry' to ensure clang-format is installed 
+-- (Since it's not an LSP, mason-lspconfig ignores it)
+local mr = require("mason-registry")
+local i_tools = { "clang-format" }
+for _, tool in ipairs(i_tools) do
+    local p = mr.get_package(tool)
+    if not p:is_installed() then
+        p:install()
+    end
+end
 local function setup_server(server, settings)
   local config = {
     on_attach = on_attach,
@@ -523,25 +535,37 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
+-- Remap exit command 
 vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], { desc = "Exit terminal mode" })
 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "c", "cpp" },
   callback = function()
-    -- 1. Open Neo-tree on the left
-    vim.cmd("Neotree show left")
-    -- 2. Ensure we are back in the main file window before splitting
-    -- This prevents splitting the terminal inside the sidebar
-    vim.cmd("wincmd l")
+    -- 1. Check if a terminal is already open in the current tab
+    local term_exists = false
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      local buf = vim.api.nvim_win_get_buf(win)
+      if vim.bo[buf].buftype == "terminal" then
+        term_exists = true
+        break
+      end
+    end
+    if not term_exists then
+      -- 1. Open Neo-tree on the left
+      vim.cmd("Neotree show left")
+      -- 2. Ensure we are back in the main file window before splitting
+      -- This prevents splitting the terminal inside the sidebar
+      vim.cmd("wincmd l")
 
-    -- 3. Create a horizontal split at the bottom of the CURRENT window only
-    -- Using 'split' instead of 'botright split' keeps it within the right-hand pane
-    vim.cmd("belowright split | term")
+      -- 3. Create a horizontal split at the bottom of the CURRENT window only
+      -- Using 'split' instead of 'botright split' keeps it within the right-hand pane
+      vim.cmd("belowright split | term")
 
-    -- 4. Resize the terminal
-    vim.cmd("resize 10")
+      -- 4. Resize the terminal
+      vim.cmd("resize 10")
 
-    -- 5. Move focus back up to the main editor window
-    vim.cmd("wincmd k")
+      -- 5. Move focus back up to the main editor window
+      vim.cmd("wincmd k")
+    end
   end,
 })
