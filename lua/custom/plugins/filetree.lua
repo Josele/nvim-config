@@ -16,10 +16,12 @@ return {
       enable_diagnostics = false,
       filesystem = {
           filtered_items = {
-            hide_dotfiles = false,
-            hide_hidden = false,
+          hide_dotfiles = false,
+          hide_hidden = false,
         },
-        follow_current_file = true,
+        follow_current_file = {
+          enabled = true,
+        },
         use_libuv_file_watcher = true,
       },
       default_component_configs = {

@@ -234,6 +234,10 @@ require('lazy').setup({
   --
   --    An additional note is that if you only copied in the `init.lua`, you can just comment this line
   --    to get rid of the warning telling you that there are not plugins in `lua/custom/plugins/`.
+  rocks = {
+    enabled = false,
+    hererocks = false,
+  },
   { import = 'custom.plugins' },
 }, {})
 
@@ -310,6 +314,13 @@ require('telescope').setup {
       },
     },
   },
+  pickers = {
+    find_files = {
+      follow = true,     -- ADD THIS: Follows symlinks
+      no_ignore = true,  -- Recommended: ignores .gitignore
+      hidden = true      -- Includes hidden files
+    }
+  }
 }
 
 -- Enable telescope fzf native, if installed
@@ -529,9 +540,31 @@ vim.api.nvim_create_autocmd('LspAttach', {
     
     -- "K" shows documentation/hover info
     vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-    
+    -- "<space>ca" code action
+    vim.keymap.set('n', '<space>ca', vim.lsp.buf.code_action, opts) 
+    -- "<space>rn" rename symbol
+    vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
     -- "gr" lists references
-    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+    -- -- Define this GLOBALLY (outside of any autocmd)
+    vim.keymap.set('n', 'gr', function()
+      -- Check if any LSP clients are currently active in this buffer
+      local clients = vim.lsp.get_clients({ bufnr = 0 })
+
+      if #clients > 0 then
+        -- LSP IS ACTIVE: Use Telescope's smart reference tool
+        require('telescope.builtin').lsp_references()
+      else
+
+        local ok, builtin = pcall(require, 'telescope.builtin')
+        if not ok then
+          print("Error: Telescope not found!")
+          return
+        end
+        -- NO LSP: Fallback to searching for the string under the cursor globally
+        print("No LSP: Searching for word under cursor...")
+        builtin.grep_string()
+      end
+    end, { desc = 'Smart References / Grep Fallback' })
   end,
 })
 
@@ -542,7 +575,7 @@ vim.keymap.set('t', '<Leader><Esc>', [[<C-\><C-n>i<Esc>]], { noremap = true })
 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "c", "cpp" },
-  once = true,  
+  once = true, 
   callback = function()
     -- 1. Check if a terminal is already open in the current tab
     local term_exists = false
@@ -572,8 +605,8 @@ vim.api.nvim_create_autocmd("FileType", {
     end
   end,
 })
+ 
 vim.o.cursorline = true -- Ensure the cursorline is enabled
 vim.cmd([[
   highlight CursorLine  guibg=#1e1e2e guifg=NONE
-]])                                                             
-
+]])
