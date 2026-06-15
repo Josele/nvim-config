@@ -537,9 +537,12 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
 -- Remap exit command 
 vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], { desc = "Exit terminal mode" })
+-- Adding esc for term mode
+vim.keymap.set('t', '<Leader><Esc>', [[<C-\><C-n>i<Esc>]], { noremap = true })
 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "c", "cpp" },
+  once = true,  
   callback = function()
     -- 1. Check if a terminal is already open in the current tab
     local term_exists = false
@@ -569,3 +572,8 @@ vim.api.nvim_create_autocmd("FileType", {
     end
   end,
 })
+vim.o.cursorline = true -- Ensure the cursorline is enabled
+vim.cmd([[
+  highlight CursorLine  guibg=#1e1e2e guifg=NONE
+]])                                                             
+
